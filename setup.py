@@ -8,7 +8,7 @@ setup(
     description='A package for reading and sending emails using IMAPClient and SMTPLib.',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-    url='https://github.com/JonasChristiano/PyMailAccess',
+    url='https://github.com/JonasChristiano/PyMailManager',
     packages=find_packages(),
     install_requires=[
         'IMAPClient==3.0.1',

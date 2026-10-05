@@ -1,80 +1,98 @@
 # PyMailAccess
 
-PyMailAccess is a Python module for accessing emails (reading and sending). It provides a simple interface for authentication, reading messages, sending emails, and manipulating messages.
+Módulo Python para **autenticar, pesquisar, ler e enviar e-mails via IMAP/SMTP**. O pacote usa o nome `pymailaccess`; este repositório se chama **PyMailManager**.
 
-## Index
+O projeto organiza a conexão, a leitura e o envio em classes separadas, com tratamento de erros e testes unitários que simulam os servidores de e-mail.
 
-- [Installation](#installation)
-- [Usage](#usage)
-- [Contribution](#contribution)
-- [License](#license)
-- [Future Features](#future-features)
+## Funcionalidades implementadas
 
-## Installation
+- Autenticação e encerramento de conexões IMAP e SMTP.
+- Listagem e seleção de pastas IMAP.
+- Busca e leitura de mensagens por identificador.
+- Extração do corpo de mensagens em texto e HTML.
+- Envio de mensagens em texto simples ou HTML para um destinatário.
+- Exceções para falhas de conexão e autenticação.
 
-To install PyMailAccess, you can clone this repository and install the dependencies using `pip`.
+## Instalação
+
+Requer Python **3.10 ou superior**, conforme os metadados do pacote.
 
 ```bash
-git clone https://github.com/JonasChristiano/PyMailAccess
-cd PyMailAccess
-pip install -r requirements.txt
+git clone https://github.com/JonasChristiano/PyMailManager.git
+cd PyMailManager
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
 ```
 
-## Usage
+No Windows, ative o ambiente com `.venv\Scripts\Activate.ps1` no PowerShell. Execute os exemplos a partir da raiz do repositório para importar o módulo `mail`.
 
-### Reading Emails
+## Ler mensagens
 
-Here is an example of how to use the `Reader` class to read emails:
+Defina `MAIL_ADDRESS`, `MAIL_PASSWORD` e `IMAP_SERVER` no ambiente. Utilize o método de autenticação permitido pelo seu provedor; quando aplicável, use senha de aplicativo.
 
 ```python
+import os
 from mail.reader import Reader
 
-reader = EmailReader('your@email.com', 'password', 'imap.example.com')
-reader.select_folder('INBOX')
-
-for email_id in reader.search_emails():
-    email_body = reader.get_email_body(email_id)
-    print(email_body)
+reader = Reader(
+    email=os.environ["MAIL_ADDRESS"],
+    password=os.environ["MAIL_PASSWORD"],
+    imap_server=os.environ["IMAP_SERVER"],
+)
+try:
+    reader.select_folder("INBOX")
+    for uid in reader.search_emails("UNSEEN"):
+        print(reader.get_email_body(uid))
+finally:
+    reader.disconnect_imap()
 ```
 
-### Sending Emails
+## Enviar uma mensagem
 
-Here is an example of how to use the `Sender` class to send emails:
+Defina também `SMTP_SERVER` com o hostname do servidor. O código atual usa `smtplib.SMTP` com STARTTLS e a porta padrão dessa classe; portas configuráveis e conexão SSL direta ainda precisam de implementação. Não passe `host:porta` como hostname.
 
 ```python
+import os
 from mail.sender import Sender
 
-sender = Sender('your@email.com', 'password', 'smtp.example.com:578', )
-sender.send_email('Subject', 'recipient@example.com', 'This is a plain message.')
-sender.send_email(
-    subject='Subject',
-    to=['recipient@example.com'],
-    body='<h1>This is an HTML message.</h1>',
-    content_type='html'
+sender = Sender(
+    email=os.environ["MAIL_ADDRESS"],
+    password=os.environ["MAIL_PASSWORD"],
+    smtp_server=os.environ["SMTP_SERVER"],
 )
+try:
+    sender.send_email(
+        subject="Exemplo de integração",
+        to="destinatario@example.com",
+        body="Mensagem enviada pela biblioteca.",
+        content_type="plain",
+    )
+finally:
+    sender.disconnect_smtp()
 ```
 
-## Contribution
+Para HTML, use `content_type="html"` e um corpo com marcação HTML. O parâmetro `to` recebe uma string com o endereço do destinatário; envio para listas não está implementado nesta versão.
 
-If you want to contribute to PyMailAccess, follow these steps:
+## Testes
 
-1. Fork this repository.
-2. Create a branch for your feature (`git checkout -b my-feature`).
-3. Commit your changes (`git commit -m "Add my feature"`).
-4. Push to the branch (`git push origin my-feature`).
-5. Open a Pull Request.
+```bash
+python -m unittest discover -s tests -v
+```
 
-Please ensure that you follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) commit pattern when making your commits.
+Os testes utilizam mocks e não precisam enviar e-mails nem acessar uma conta real.
 
-## License
+## Estrutura
 
-This project is licensed under the MIT license - see the [LICENSE](LICENSE) file for details.
+- `mail/connection.py`: conexão e exceções IMAP/SMTP.
+- `mail/reader.py`: pastas, busca e leitura de mensagens.
+- `mail/sender.py`: envio de texto simples e HTML.
+- `tests/`: testes de conexão, leitura e envio.
 
-## Future Features
+## Próximas melhorias
 
-- **File Attachments:** Enable sending emails with attachments such as PDFs, images, Word documents, etc.
-- **Email Templates:** Implement a system for email templates to facilitate sending consistently formatted messages like newsletters, account confirmations, etc.
-- **Advanced Error Handling:** Improve error handling to manage connection failures, sending errors, and other issues that may occur during the email sending process.
-- **Sending Logs:** Implement logging to record all email sending attempts, aiding in debugging and monitoring.
-- **Bulk Email Sending:** Add support for sending emails to a list of recipients, optimizing communication for large-scale operations.
-- **Scheduled Sending:** Allow scheduling emails for specific times, useful for marketing campaigns or automated reminders.
+Portas SMTP configuráveis, OAuth, anexos, destinatários múltiplos e tratamento mais amplo de charsets são melhorias futuras. Elas não são apresentadas como funcionalidades disponíveis.
+
+## Licença
+
+[MIT](LICENSE). Desenvolvido por [Jonas Christiano](https://github.com/JonasChristiano).
